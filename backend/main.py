@@ -33,12 +33,12 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:5173",
         "http://localhost:5173",
+        "https://health-tracker-ten-lac.vercel.app/",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.include_router(user.router)
 app.include_router(tracker.router)
 
