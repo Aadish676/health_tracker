@@ -31,9 +31,10 @@ app = FastAPI(title="Health Tracker")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-        "https://health-tracker-ten-lac.vercel.app",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "https://health-tracker-ten-lac.vercel.app",
+    "https://health-tracker-git-master-aadish676s-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
