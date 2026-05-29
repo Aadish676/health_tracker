@@ -143,19 +143,25 @@ function AuthScreen({ onLogin, message, setMessage }) {
 
     try {
       if (mode === "register") {
-        const query = new URLSearchParams(form);
-        const response = await fetch(`${API_URL}/register?${query}`, { method: "POST" });
+        const response = await fetch(`${API_URL}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
         const data = await response.json();
 
         if (!response.ok) throw new Error(data.detail || "Registration failed");
         setMessage("Account created. Logging you in now.");
       }
 
-      const loginQuery = new URLSearchParams({
-        email: form.email,
-        password: form.password,
+      const loginResponse = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
       });
-      const loginResponse = await fetch(`${API_URL}/login?${loginQuery}`, { method: "POST" });
       const loginData = await loginResponse.json();
 
       if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
