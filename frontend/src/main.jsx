@@ -596,11 +596,7 @@ function applyFoodResult(result) {
     setFoodResults([]);
     setLookupStatus(`Applied macros from ${result.source}. You can edit them before saving.`);
 }
-    }));
-    setFoodResults([]);
-    setLookupStatus(`Applied macros from ${result.source}. You can edit them before saving.`);
-  }
-
+   
   function startEdit(item) {
     setEditingId(item.id);
     setEditForm(
