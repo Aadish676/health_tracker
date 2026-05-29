@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from database import SessionLocal
 from models import User
@@ -12,6 +13,17 @@ from auth import (
 router = APIRouter()
 
 
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -22,13 +34,11 @@ def get_db():
 
 @router.post("/register")
 def register(
-    name: str,
-    email: str,
-    password: str,
+    request: RegisterRequest,
     db: Session = Depends(get_db)
 ):
     existing_user = db.query(User).filter(
-        User.email == email
+        User.email == request.email
     ).first()
 
     if existing_user:
@@ -38,9 +48,9 @@ def register(
         )
 
     new_user = User(
-        name=name,
-        email=email,
-        password=hash_password(password)
+        name=request.name,
+        email=request.email,
+        password=hash_password(request.password)
     )
 
     db.add(new_user)
@@ -51,12 +61,11 @@ def register(
 
 @router.post("/login")
 def login(
-    email: str,
-    password: str,
+    request: LoginRequest,
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(
-        User.email == email
+        User.email == request.email
     ).first()
 
     if not user:
@@ -65,7 +74,7 @@ def login(
             detail="Invalid email"
         )
 
-    if not verify_password(password, user.password):
+    if not verify_password(request.password, user.password):
         raise HTTPException(
             status_code=400,
             detail="Invalid password"
