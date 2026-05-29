@@ -577,15 +577,19 @@ function TrackerPage({ title, subtitle, fetcher, path, lookupType, items, setIte
     }
   }
 
-  function applyFoodResult(result) {
+function applyFoodResult(result) {
       setForm((current) => ({
         ...current,
         name: result.name,
         quantity_grams: Number(result.serving_size.replace(" g", "")) || current.quantity_grams,
         calories: Math.round(result.calories),
-      protein: result.protein,
-      carbs: result.carbs,
-      fat: result.fat,
+        protein: result.protein,
+        carbs: result.carbs,
+        fat: result.fat,
+    }));
+    setFoodResults([]);
+    setLookupStatus(`Applied macros from ${result.source}. You can edit them before saving.`);
+}
     }));
     setFoodResults([]);
     setLookupStatus(`Applied macros from ${result.source}. You can edit them before saving.`);
