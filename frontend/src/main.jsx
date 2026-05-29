@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = import.meta.env.VITE_API_URL;
 const today = new Date().toISOString().slice(0, 10);
 
 function App() {
