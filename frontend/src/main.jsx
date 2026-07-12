@@ -129,8 +129,8 @@ function AuthScreen({ onLogin, message, setMessage }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     name: "",
-    email: "aadish102005@gmail.com",
-    password: "Aadish917",
+    email: "",
+    password: "",
   });
 
   function update(field, value) {
