@@ -128,10 +128,15 @@ def me(user: User = Depends(get_current_user)):
 def food_lookup(query: str, grams: float = 100, count: float = 0):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Food name is required")
-    if grams <= 0:
-        raise HTTPException(status_code=400, detail="Food weight must be positive")
+    if grams <= 0 and count <= 0:
+        raise HTTPException(status_code=400, detail="Food weight or piece count must be positive")
 
     suggestions = find_common_foods(query, grams=grams, count=count)
+
+    if count > 0 and grams <= 0:
+        if suggestions:
+            return {"query": query, "grams": grams, "count": count, "results": suggestions}
+        raise HTTPException(status_code=404, detail="Piece lookup is available for foods with known piece weights in the local library.")
 
     params = urlencode(
         {
@@ -156,7 +161,7 @@ def food_lookup(query: str, grams: float = 100, count: float = 0):
             return {"query": query, "grams": grams, "results": suggestions}
         raise HTTPException(status_code=502, detail="Could not reach the food nutrition database.") from exc
 
-    multiplier = grams / 100
+    multiplier = grams / 100 if grams > 0 else 1
 
     for product in data.get("products", []):
         nutriments = product.get("nutriments", {})
@@ -165,7 +170,7 @@ def food_lookup(query: str, grams: float = 100, count: float = 0):
         suggestions.append(
             {
                 "name": name,
-                "serving_size": product.get("serving_size") or "100 g",
+                "serving_size": f"{grams:g} g" if grams > 0 else product.get("serving_size") or "100 g",
                 "quantity_grams": grams,
                 "quantity_count": count,
                 "calories": round_number(nutriments.get("energy-kcal_100g") * multiplier if nutriments.get("energy-kcal_100g") is not None else 0),

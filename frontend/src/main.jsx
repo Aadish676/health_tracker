@@ -394,7 +394,9 @@ function Meals({ fetcher }) {
   const [form, setForm] = useState({
     name: "",
     meal_type: "Breakfast",
+    quantity_mode: "grams",
     quantity_grams: 100,
+    quantity_count: 0,
     calories: 400,
     protein: 20,
     carbs: 45,
@@ -416,14 +418,16 @@ function Meals({ fetcher }) {
       fields={[
         ["name", "Food name", "text"],
         ["meal_type", "Meal type", "select", ["Breakfast", "Lunch", "Dinner", "Snack"]],
+        ["quantity_mode", "Quantity mode", "select", ["grams", "pieces"]],
         ["quantity_grams", "Food weight (g)", "number"],
+        ["quantity_count", "Pieces", "number"],
         ["calories", "Calories", "number"],
         ["protein", "Protein (g)", "number"],
         ["carbs", "Carbs (g)", "number"],
         ["fat", "Fat (g)", "number"],
         ["entry_date", "Date", "date"],
       ]}
-      display={["name", "meal_type", "quantity_grams", "calories", "protein", "carbs", "fat", "entry_date"]}
+      display={["name", "meal_type", "quantity_grams", "quantity_count", "calories", "protein", "carbs", "fat", "entry_date"]}
     />
   );
 }
@@ -495,11 +499,11 @@ function TrackerPage({ title, subtitle, fetcher, path, lookupType, items, setIte
   useEffect(load, [fetcher, path, setItems]);
 
   function update(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => updateQuantityMode(current, field, value));
   }
 
   function updateEdit(field, value) {
-    setEditForm((current) => ({ ...current, [field]: value }));
+    setEditForm((current) => updateQuantityMode(current, field, value));
   }
 
   async function saveItem(event) {
@@ -507,7 +511,7 @@ function TrackerPage({ title, subtitle, fetcher, path, lookupType, items, setIte
     setSaving(true);
 
     const isEditing = editingId !== null;
-    const payload = isEditing ? editForm : form;
+    const { quantity_mode, ...payload } = isEditing ? editForm : form;
     const response = await fetcher(isEditing ? `${path}/${editingId}` : path, {
       method: isEditing ? "PUT" : "POST",
       body: JSON.stringify(payload),
@@ -541,8 +545,10 @@ function TrackerPage({ title, subtitle, fetcher, path, lookupType, items, setIte
     setFoodResults([]);
 
     try {
-      const grams = form.quantity_grams || 100;
-      const response = await fetcher(`/food-lookup?query=${encodeURIComponent(form.name)}&grams=${grams}`);
+      const usePieces = form.quantity_mode === "pieces";
+      const grams = usePieces ? 0 : form.quantity_grams || 100;
+      const count = usePieces ? form.quantity_count || 1 : 0;
+      const response = await fetcher(`/food-lookup?query=${encodeURIComponent(form.name)}&grams=${grams}&count=${count}`);
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.detail || "Food lookup failed");
@@ -587,7 +593,8 @@ function applyFoodResult(result) {
       setForm((current) => ({
         ...current,
         name: result.name,
-        quantity_grams: Number(result.serving_size.replace(" g", "")) || current.quantity_grams,
+        quantity_grams: Number(result.quantity_grams) || 0,
+        quantity_count: Number(result.quantity_count) || 0,
         calories: Math.round(result.calories),
         protein: result.protein,
         carbs: result.carbs,
@@ -601,7 +608,7 @@ function applyFoodResult(result) {
     setEditingId(item.id);
     setEditForm(
       fields.reduce((current, [field]) => {
-        current[field] = item[field];
+        current[field] = field === "quantity_mode" ? (item.quantity_count > 0 ? "pieces" : "grams") : item[field];
         return current;
       }, {})
     );
@@ -659,8 +666,10 @@ function applyFoodResult(result) {
       )}
 
       <form className="entry-form" onSubmit={saveItem}>
-        {fields.map(([field, label, type, options]) => (
-          <label key={field}>
+        {fields.map(([field, label, type, options]) => {
+          if (field === "quantity_grams" && activeForm.quantity_mode === "pieces") return null;
+          if (field === "quantity_count" && activeForm.quantity_mode !== "pieces") return null;
+          return (<label key={field}>
             {label}
             {type === "select" ? (
               <select value={activeForm[field]} onChange={(event) => updateActiveForm(field, event.target.value)}>
@@ -676,8 +685,8 @@ function applyFoodResult(result) {
                 required
               />
             )}
-          </label>
-        ))}
+          </label>);
+        })}
         <button className="primary-button compact" type="submit" disabled={saving}>
           {editingId !== null ? <Edit3 size={18} /> : <Plus size={18} />}
           {editingId !== null ? "Save edits" : "Add"}
@@ -694,7 +703,7 @@ function applyFoodResult(result) {
           <article className="data-row" key={item.id}>
             <div>
               {display.map((field) => (
-                <span key={field}>{String(item[field])}</span>
+                <span key={field}>{formatField(field, item)}</span>
               ))}
             </div>
             <div className="row-actions">
@@ -711,6 +720,22 @@ function applyFoodResult(result) {
       </section>
     </>
   );
+}
+
+function updateQuantityMode(current, field, value) {
+  if (field !== "quantity_mode") return { ...current, [field]: value };
+  return {
+    ...current,
+    quantity_mode: value,
+    quantity_grams: value === "grams" ? current.quantity_grams || 100 : 0,
+    quantity_count: value === "pieces" ? current.quantity_count || 1 : 0,
+  };
+}
+
+function formatField(field, item) {
+  if (field === "quantity_grams") return item.quantity_count > 0 ? `${item.quantity_grams}g total` : `${item.quantity_grams}g`;
+  if (field === "quantity_count") return item.quantity_count > 0 ? `${item.quantity_count} pc` : "by weight";
+  return String(item[field]);
 }
 
 function Community({ fetcher }) {
